@@ -10,7 +10,6 @@
     "lint": "eslint . --ext .ts,.vue --ignore-path .gitignore"
   },
   "dependencies": {
-    "@amap/amap-jsapi-loader": "^1.0.1",
     "axios": "^1.7.7",
     "element-plus": "^2.8.0",
     "dayjs": "^1.11.13",

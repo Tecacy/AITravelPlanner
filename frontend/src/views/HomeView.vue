@@ -1,15 +1,20 @@
 <template>
   <section class="home-view">
     <aside class="home-view__sidebar panel">
-      <el-menu :default-active="activeMenu" class="home-view__menu">
-        <el-menu-item index="planner" @click="goPlanner">
+      <el-menu
+        :default-active="activeMenu"
+        class="home-view__menu"
+        router
+        unique-opened
+      >
+        <el-menu-item index="/planner">
           立即规划旅程
         </el-menu-item>
-        <el-menu-item index="budget" @click="goBudget">
+        <el-menu-item index="/budget">
           查看预算管理
         </el-menu-item>
       </el-menu>
-      <VoiceInputCard />
+      <VoiceInputCard @confirmed="handleVoiceInput" />
     </aside>
     <div class="home-view__map panel">
       <MapContainer />
@@ -25,10 +30,14 @@ import MapContainer from '@/components/map/MapContainer.vue';
 import VoiceInputCard from '@/components/voice/VoiceInputCard.vue';
 
 const router = useRouter();
-const activeMenu = computed(() => router.currentRoute.value.name?.toString() ?? 'planner');
+const activeMenu = computed(() => router.currentRoute.value.path ?? '/planner');
 
-const goPlanner = () => router.push({ name: 'planner' });
-const goBudget = () => router.push({ name: 'budget' });
+const handleVoiceInput = (content: string) => {
+  if (!content) {
+    return;
+  }
+  router.push({ name: 'planner', query: { voice: content } });
+};
 </script>
 
 <style scoped>

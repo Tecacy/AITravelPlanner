@@ -28,11 +28,18 @@ AITravelPlanner/
 ## 快速开始
 
 ### 1. 后端
-```bash
+```powershell
 cd backend
-./mvnw spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
-> Windows 请使用 `mvnw.cmd`。
+> 默认使用内存数据库 H2，可通过 `http://localhost:8080/h2-console` 查看数据。
+> 若已在系统中安装 Maven，也可改用 `mvn spring-boot:run`。
+
+如需切换到 MySQL，请在 `application.yml` 中改写 `spring.datasource` 配置，并提供实际的连接参数。
+
+### AI 与语音占位实现
+- `POST /api/ai/trip-plans`：使用占位的大语言模型服务，根据用户输入生成示例行程结构。
+- `POST /api/voice/transcribe`：语音转写接口，当前返回模拟文本，后续可接入科大讯飞等服务。
 
 运行前请在 `application.yml` 中设置 MySQL 连接，或通过环境变量覆盖：
 
@@ -51,9 +58,15 @@ npm run dev
 需要 Node.js 18+ 环境。若需要地图功能，请在运行前设置：
 
 ```
-VITE_AMAP_KEY=你的高德 Web Key
-VITE_AMAP_SECRET=安全码（若已启用安全设置）
+VITE_BMAP_AK=你的百度地图AK
 ```
+
+> 也可在前端页面右上角的「API Key 设置」中输入百度地图 AK（及 LLM、语音等 Key），密钥会保存在浏览器本地。可选地，复制 `frontend/public/config/api-keys.example.json` 为 `api-keys.json`，在文件中填入 Key 以便默认加载。
+
+## API Key 配置方式
+- **前端设置面板（推荐）**：运行后点击页面右上角「API Key 设置」，填写百度地图 / LLM / 语音等 Key，数据仅保存在浏览器 `localStorage`，刷新后生效。
+- **环境变量**：在 `frontend/.env.local`（已被 `.gitignore` 忽略）中写入 `VITE_BMAP_AK=xxx` 等变量；也可通过命令行 `export` / `set` 临时设置。
+- **配置文件**：复制 `frontend/public/config/api-keys.example.json` 为 `frontend/public/config/api-keys.json`，填入密钥后重新刷新页面，系统会在首次加载时读取该文件，并仅在本地使用。
 
 ## 下一步计划
 - 接入科大讯飞或其他语音识别 API，实现真实语音转写。

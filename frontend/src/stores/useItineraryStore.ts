@@ -1,34 +1,11 @@
 import { defineStore } from 'pinia';
 
-export interface DailyPlan {
-  date: string;
-  summary: string;
-  activities: Array<{
-    time: string;
-    title: string;
-    description?: string;
-    location?: string;
-    budget?: number;
-    coordinates?: [number, number];
-  }>;
-}
-
-export interface Itinerary {
-  id?: string;
-  destination: string;
-  startDate: string;
-  endDate: string;
-  budget: number;
-  travelers: number;
-  preferences: string[];
-  dailyPlans: DailyPlan[];
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { createTripPlan, fetchTripPlans, updateTripPlan } from '@/services/tripService';
+import type { TripPlan, TripPlanPayload } from '@/types/trip';
 
 interface ItineraryState {
-  currentPlan: Itinerary | null;
-  plans: Itinerary[];
+  currentPlan: TripPlan | null;
+  plans: TripPlan[];
   loading: boolean;
 }
 
@@ -39,15 +16,51 @@ export const useItineraryStore = defineStore('itinerary', {
     loading: false,
   }),
   actions: {
-    setCurrent(plan: Itinerary | null) {
+    setCurrent(plan: TripPlan | null) {
       this.currentPlan = plan;
     },
-    upsertPlan(plan: Itinerary) {
+    upsertPlan(plan: TripPlan) {
       const index = this.plans.findIndex((item) => item.id === plan.id);
       if (index >= 0) {
         this.plans.splice(index, 1, plan);
       } else {
         this.plans.push(plan);
+      }
+    },
+    async loadPlans(userId?: string) {
+      this.loading = true;
+      try {
+        const data = await fetchTripPlans(userId);
+        this.plans = data;
+        if (!this.currentPlan && data.length) {
+          this.currentPlan = data[0];
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
+    async createPlan(payload: TripPlanPayload) {
+      this.loading = true;
+      try {
+        const plan = await createTripPlan(payload);
+        this.upsertPlan(plan);
+        this.currentPlan = plan;
+        return plan;
+      } finally {
+        this.loading = false;
+      }
+    },
+    async updatePlan(id: string, payload: TripPlanPayload) {
+      this.loading = true;
+      try {
+        const plan = await updateTripPlan(id, payload);
+        this.upsertPlan(plan);
+        if (this.currentPlan?.id === id) {
+          this.currentPlan = plan;
+        }
+        return plan;
+      } finally {
+        this.loading = false;
       }
     },
   },

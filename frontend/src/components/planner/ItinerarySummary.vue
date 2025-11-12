@@ -28,9 +28,19 @@
             <h3>{{ day.summary }}</h3>
             <ul>
               <li v-for="activity in day.activities" :key="activity.title">
-                <strong>{{ activity.time }}</strong>
-                <span>{{ activity.title }}</span>
-                <span v-if="activity.location"> - {{ activity.location }}</span>
+                <div class="activity-line">
+                  <strong>{{ activity.time || '全天' }}</strong>
+                  <span>{{ activity.title }}</span>
+                </div>
+                <div v-if="activity.location" class="activity-meta">
+                  📍 {{ activity.location }}
+                </div>
+                <div v-if="activity.description" class="activity-meta">
+                  📝 {{ activity.description }}
+                </div>
+                <div v-if="activity.estimatedCost" class="activity-meta">
+                  💰 预计花费：{{ activity.estimatedCost }} 元
+                </div>
               </li>
             </ul>
           </el-card>
@@ -45,10 +55,10 @@ import { computed } from 'vue';
 
 import dayjs from 'dayjs';
 
-import type { Itinerary } from '@/stores/useItineraryStore';
+import type { TripPlan } from '@/types/trip';
 
 const props = defineProps<{
-  plan: Itinerary | null;
+  plan: TripPlan | null;
   loading?: boolean;
 }>();
 
@@ -101,6 +111,18 @@ const formatDate = (input: string | undefined) => {
 
 ul {
   padding-left: 16px;
+}
+
+.activity-line {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.activity-meta {
+  margin-left: 56px;
+  font-size: 13px;
+  color: #64748b;
 }
 </style>
 

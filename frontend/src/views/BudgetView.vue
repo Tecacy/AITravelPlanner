@@ -1,20 +1,28 @@
 <template>
   <section class="budget-view">
-    <div class="budget-view__summary panel">
+    <div class="budget-view__summary panel" v-loading="loading">
       <h2>预算概览</h2>
       <el-statistic title="预计预算" :value="budgetStore.expectedBudget" unit="元" />
       <el-statistic title="已用预算" :value="budgetStore.totalExpense" unit="元" />
       <el-statistic title="剩余预算" :value="budgetStore.remainingBudget" unit="元" />
     </div>
-    <div class="budget-view__list panel">
+    <div class="budget-view__list panel" v-loading="loading">
       <div class="budget-view__list-header">
         <h3>费用记录</h3>
         <el-button type="primary" @click="openDialog">新增记录</el-button>
       </div>
-      <el-empty v-if="!budgetStore.expenses.length" description="暂无费用记录，尝试语音或手动记账" />
-      <el-table v-else :data="budgetStore.expenses" stripe>
-        <el-table-column prop="recordedAt" label="时间" width="180" />
-        <el-table-column prop="category" label="类别" width="120" />
+      <el-empty v-if="!expenses.length" description="暂无费用记录，尝试语音或手动记账" />
+      <el-table v-else :data="expenses" stripe>
+        <el-table-column label="时间" width="200">
+          <template #default="{ row }">
+            {{ dayjs(row.recordedAt).format('YYYY-MM-DD HH:mm') }}
+          </template>
+        </el-table-column>
+        <el-table-column label="类别" width="120">
+          <template #default="{ row }">
+            {{ categoryLabel(row.category) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="amount" label="金额" width="120" />
         <el-table-column prop="note" label="备注" />
         <el-table-column label="操作" width="120">
@@ -24,7 +32,7 @@
         </el-table-column>
       </el-table>
     </div>
-    <VoiceInputCard @transcribed="handleVoiceInput" />
+    <VoiceInputCard @confirmed="handleVoiceInput" />
     <el-dialog v-model="dialogVisible" title="新增费用">
       <el-form :model="form" label-position="top">
         <el-form-item label="类别">
@@ -56,58 +64,111 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import dayjs from 'dayjs';
 
 import VoiceInputCard from '@/components/voice/VoiceInputCard.vue';
-import { useBudgetStore } from '@/stores';
+import { useBudgetStore, useItineraryStore } from '@/stores';
+import type { ExpensePayload } from '@/types/expense';
 
 const budgetStore = useBudgetStore();
+const itineraryStore = useItineraryStore();
+
 const dialogVisible = ref(false);
 const form = reactive({
-  category: 'transport',
+  category: 'TRANSPORT',
   amount: 0,
   currency: 'CNY',
   note: '',
 });
 
 const categories = [
-  { value: 'transport', label: '交通' },
-  { value: 'hotel', label: '住宿' },
-  { value: 'food', label: '餐饮' },
-  { value: 'entertainment', label: '娱乐' },
-  { value: 'shopping', label: '购物' },
-  { value: 'other', label: '其他' },
+  { value: 'TRANSPORT', label: '交通' },
+  { value: 'HOTEL', label: '住宿' },
+  { value: 'FOOD', label: '餐饮' },
+  { value: 'ENTERTAINMENT', label: '娱乐' },
+  { value: 'SHOPPING', label: '购物' },
+  { value: 'OTHER', label: '其他' },
 ];
 
+const currentPlan = computed(() => itineraryStore.currentPlan);
+const expenses = computed(() => budgetStore.expenses);
+const loading = computed(() => budgetStore.loading || itineraryStore.loading);
+
+watch(
+  currentPlan,
+  async (plan) => {
+    if (plan?.id) {
+      budgetStore.setExpectedBudget(plan.budget);
+      try {
+        await budgetStore.loadExpenses(plan.id);
+      } catch (error) {
+        ElMessage.error((error as Error).message || '加载费用失败');
+      }
+    } else {
+      budgetStore.reset();
+    }
+  },
+  { immediate: true },
+);
+
 const openDialog = () => {
+  if (!currentPlan.value?.id) {
+    ElMessage.warning('请先生成或选择行程');
+    return;
+  }
   dialogVisible.value = true;
 };
 
-const submitExpense = () => {
+const submitExpense = async () => {
+  if (!currentPlan.value?.id) {
+    ElMessage.warning('请先生成或选择行程');
+    return;
+  }
   if (!form.amount) {
     ElMessage.warning('请输入金额');
     return;
   }
 
-  budgetStore.addExpense({
-    ...form,
-    id: crypto.randomUUID(),
-    recordedAt: new Date().toISOString(),
-  });
-  dialogVisible.value = false;
-  ElMessage.success('费用记录已保存（示例数据）');
+  const payload: ExpensePayload = {
+    category: form.category as ExpensePayload['category'],
+    amount: form.amount,
+    currency: form.currency,
+    note: form.note,
+    recordedAt: dayjs().toISOString(),
+  };
+
+  try {
+    await budgetStore.addExpense(currentPlan.value.id, payload);
+    dialogVisible.value = false;
+    Object.assign(form, { category: 'TRANSPORT', amount: 0, currency: 'CNY', note: '' });
+    ElMessage.success('费用记录已保存');
+  } catch (error) {
+    ElMessage.error((error as Error).message || '保存费用失败');
+  }
 };
 
-const removeExpense = (id?: string) => {
-  if (!id) {
+const removeExpense = async (id?: string) => {
+  if (!id || !currentPlan.value?.id) {
     return;
   }
-  budgetStore.removeExpense(id);
-  ElMessage.success('已删除费用记录');
+  try {
+    await budgetStore.removeExpense(currentPlan.value.id, id);
+    ElMessage.success('已删除费用记录');
+  } catch (error) {
+    ElMessage.error((error as Error).message || '删除费用失败');
+  }
+};
+
+const categoryLabel = (value: string) => {
+  return categories.find((item) => item.value === value)?.label ?? value;
 };
 
 const handleVoiceInput = (content: string) => {
+  if (!content) {
+    return;
+  }
   // TODO: 将语音识别结果解析为费用记录
   ElMessage.info(`语音记账识别：${content}`);
 };
