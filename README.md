@@ -68,6 +68,31 @@ VITE_BMAP_AK=你的百度地图AK
 - **环境变量**：在 `frontend/.env.local`（已被 `.gitignore` 忽略）中写入 `VITE_BMAP_AK=xxx` 等变量；也可通过命令行 `export` / `set` 临时设置。
 - **配置文件**：复制 `frontend/public/config/api-keys.example.json` 为 `frontend/public/config/api-keys.json`，填入密钥后重新刷新页面，系统会在首次加载时读取该文件，并仅在本地使用。
 
+## 使用 Docker 运行
+
+- 构建镜像：
+  - `docker build -t ai-travel-planner:latest .`
+- 以 H2 内存库运行（默认）：
+  - `docker run --name ai-travel-planner -p 8080:8080 ai-travel-planner:latest`
+- 访问：
+  - Web 前端 `http://localhost:8080`
+  - API 文档 `http://localhost:8080/docs`
+  - H2 Console `http://localhost:8080/h2-console`
+
+### 切换到 MySQL
+- 运行时通过环境变量覆盖后端配置：
+  - `docker run -p 8080:8080 \`
+    `-e DB_URL="jdbc:mysql://<host>:3306/travel?useSSL=false&serverTimezone=UTC" \`
+    `-e DB_USERNAME="root" -e DB_PASSWORD="secret" \`
+    `ai-travel-planner:latest`
+
+### 导出为可直接下载运行的镜像文件（.tar）
+- 导出镜像：
+  - `docker save -o ai-travel-planner-image.tar ai-travel-planner:latest`
+- 在另一台机器加载并运行：
+  - `docker load -i ai-travel-planner-image.tar`
+  - `docker run --name ai-travel-planner -p 8080:8080 ai-travel-planner:latest`
+
 ## 下一步计划
 - 接入科大讯飞或其他语音识别 API，实现真实语音转写。
 - 集成大语言模型生成行程（Function Calling，结构化输出）。
@@ -75,4 +100,4 @@ VITE_BMAP_AK=你的百度地图AK
 - 与 Supabase/Firebase 认证、云同步打通，实现多终端共享。
 - 丰富 UI/UX，并增加测试、CI/CD 流程。
 
-欢迎继续扩展或指定模块深化，我们将协助完善。*** End Patch
+欢迎继续扩展或指定模块深化，我们将协助完善。

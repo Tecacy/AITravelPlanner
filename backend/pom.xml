@@ -107,6 +107,29 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>com.google.cloud.tools</groupId>
+				<artifactId>jib-maven-plugin</artifactId>
+				<version>3.4.3</version>
+				<configuration>
+					<container>
+						<ports>
+							<port>8080</port>
+						</ports>
+						<jvmFlags>
+							<jvmFlag>-Dspring.web.resources.static-locations=file:/app/static/</jvmFlag>
+						</jvmFlags>
+					</container>
+					<extraDirectories>
+						<paths>
+							<path>
+								<from>${project.basedir}/../frontend/dist</from>
+								<into>/app/static</into>
+							</path>
+						</paths>
+					</extraDirectories>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
