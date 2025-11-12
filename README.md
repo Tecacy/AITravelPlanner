@@ -93,11 +93,5 @@ VITE_BMAP_AK=你的百度地图AK
   - `docker load -i ai-travel-planner-image.tar`
   - `docker run --name ai-travel-planner -p 8080:8080 ai-travel-planner:latest`
 
-## 下一步计划
-- 接入科大讯飞或其他语音识别 API，实现真实语音转写。
-- 集成大语言模型生成行程（Function Calling，结构化输出）。
-- 结合高德/百度地图服务获取 POI、路线、导航能力。
-- 与 Supabase/Firebase 认证、云同步打通，实现多终端共享。
-- 丰富 UI/UX，并增加测试、CI/CD 流程。
 
 欢迎继续扩展或指定模块深化，我们将协助完善。
